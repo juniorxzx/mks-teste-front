@@ -1,95 +1,106 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
 
+import { GetProducts } from "../services/mkt-api";
+import React, { useContext, useEffect, useState } from "react";
+import { AlternativeMain, Card, CardButton, CardDetails, CardDetailsHeader, Cards, Main } from "./page.styled";
+import Image from "next/image";
+import BoxIcon from '../assets/icons/box.svg'
+import { GlobalContext } from "../context/GlobalContext";
+import Loading from "../components/loading/loading";
+import { useQuery } from 'react-query';
+
+interface Product {
+  id: number;
+  name: string;
+  photo: string;
+  price: string;
+  description: string
+}
 export default function Home() {
+  const { cards, setCards } = useContext(GlobalContext);
+  const { data: products, isLoading, isError } = useQuery('products', GetProducts);
+
+  const addToCart = (product: Product) => {
+    const currentCart = localStorage.getItem('cart');
+    let newCart = [];
+    if (currentCart) {
+      newCart = JSON.parse(currentCart);
+    }
+    const existingProductIndex = newCart.findIndex((item: any) => item.id === product.id);
+    if (existingProductIndex !== -1) {
+      newCart[existingProductIndex].quantity += 1;
+    } else {
+
+      newCart.push({
+        id: product.id,
+        img: product.photo,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        quantity: 1
+      });
+    }
+
+    localStorage.setItem('cart', JSON.stringify(newCart));
+    setCards([...newCart]);
+  }
+
+
+  if (isLoading) {
+    return (
+      <AlternativeMain>
+        <Loading />
+      </AlternativeMain>
+    );
+  }
+
+  if (isError) {
+    return <div>Erro ao carregar os produtos</div>;
+  }
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <Main>
+      <Cards>
+        {products.map((product: Product) => (
+          <Card key={product.id}
+            whileHover={{
+              scale: 1.05,
+              transition: { duration: 0.5 },
+
+            }}
+            whileTap={{ scale: 1 }}
           >
-            By{" "}
             <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
+              src={product.photo}
+              alt={`${product.name}-image`}
+              width={111}
+              height={138}
               priority
             />
-          </a>
-        </div>
-      </div>
+            <CardDetails>
+              <CardDetailsHeader>
+                <span>
+                  {product.name}
+                </span>
+                <span>
+                  R${product.price}
+                </span>
+              </CardDetailsHeader>
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+              <p>
+                {product.description}
+              </p>
+            </CardDetails>
+            <CardButton onClick={() => addToCart(product)}>
+              <Image src={BoxIcon} alt={`icon-box`} />
+              <span>Comprar</span>
+            </CardButton>
+          </Card>
 
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+        ))}
+      </Cards>
+    </Main>
   );
 }
+
